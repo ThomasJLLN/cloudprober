@@ -39,6 +39,10 @@ var (
 	startTime time.Time
 )
 
+const (
+	HostnameEnvVar = "CLOUDPROBER_HOSTNAME"
+)
+
 var cloudMetadataFlag = flag.String("cloud_metadata", "auto", "Collect cloud metadata for [auto|gce|ec2|none]")
 
 var cloudProviders = struct {
@@ -144,6 +148,7 @@ func initCloudMetadata(fv string) error {
 // for tests which require sysvars that might not exist, or might have the wrong
 // value.
 func Init(ll *logger.Logger, userVars map[string]string) error {
+	var err error
 	sysVarsMu.Lock()
 	defer sysVarsMu.Unlock()
 	if sysVars != nil {
@@ -156,9 +161,12 @@ func Init(ll *logger.Logger, userVars map[string]string) error {
 		"version": state.Version(),
 	}
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		return fmt.Errorf("sysvars.Init(): error getting local hostname: %v", err)
+	var hostname string
+	if hostname = os.Getenv(HostnameEnvVar); hostname == "" {
+		hostname, err = os.Hostname()
+		if err != nil {
+			return fmt.Errorf("sysvars.Init(): error getting local hostname: %v", err)
+		}
 	}
 	sysVars["hostname"] = hostname
 
